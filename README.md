@@ -11,15 +11,7 @@ A simple tool for Petri Net metrics. It reads process models ( https://www.pnml.
 
 ## Architecture
 
-PNML file
-V
-XML parser
-V
-Graph extraction
-V
-Metric calculations
-V
-JSON report
+PNML file -> XML parser -> Graph extraction -> Metric calculations -> JSON report
 
 ## Usage
 
