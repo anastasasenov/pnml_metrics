@@ -9,6 +9,18 @@ A simple tool for Petri Net metrics. It reads process models ( https://www.pnml.
 * Ratio: The percentage of duplicate tasks (clones) in the system ( https://wikipedia.org/wiki/Petri_net )
 * Single Points of Failure (SPOF): Strict bottlenecks where a single failure stops everything ( https://wikipedia.org/wiki/Single_point_of_failure )
 
+## Architecture
+
+PNML file
+V
+XML parser
+V
+Graph extraction
+V
+Metric calculations
+V
+JSON report
+
 ## Usage
 
 ```python
