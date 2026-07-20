@@ -4,6 +4,9 @@
 # PNML metrics
 #-------------
 
+# This is a preliminary experimental program that calculates
+# simple Petri Nets metrics (such as number of elemts, density, ...).
+
 
 import json
 import math
@@ -21,7 +24,7 @@ def parse_pnml_file(file_path: str):
         sys.exit(1)
     except FileNotFoundError:
         print(f"Error: File not found at '{file_path}'", file=sys.stderr)
-        sys.exit(1)
+        sys.exit(2)
 
     places = set()
     transitions = {}
@@ -32,8 +35,9 @@ def parse_pnml_file(file_path: str):
             for p in page.findall('.//{*}place'):
                 p_id = p.get('id')
                 if p_id:
-                    places.add(p_id)
+                    places.add(p_id) # collect places
             
+            # find transitions
             for t in page.findall('.//{*}transition'):
                 t_id = t.get('id')
                 if t_id:
@@ -45,13 +49,13 @@ def parse_pnml_file(file_path: str):
                 src = a.get('source')
                 tgt = a.get('target')
                 if src and tgt:
-                    arcs.add((src, tgt))
+                    arcs.add((src, tgt)) # collect arcs
 
     for src, tgt in arcs:
         if tgt in transitions:
-            transitions[tgt]["in"].add(src)
+            transitions[tgt]["in"].add(src) # input transitions
         if src in transitions:
-            transitions[src]["out"].add(tgt)
+            transitions[src]["out"].add(tgt) # output transitions
 
     return places, transitions, arcs
 
@@ -65,27 +69,36 @@ def calculate_resilience_data(places, transitions):
         out_count = sum(1 for t in transitions.values() if p in t["in"])
         if out_count > 1:
             split_degrees.append(out_count)
-            total_split_arcs += out_count
-            
+            total_split_arcs += out_count # number of arcs with degree > 1
+
+    # average_split_degree = sum of outgoing arcs / total_count_of_split nodes
+    average_split_degree = 0.0
+    if ( len(split_degrees) > 1 ):
+        average_split_degree = ( average_split_degree + total_split_arcs ) / len(split_degrees)
+
+    # This is structural entropy ( tokens are excluded )
+    # entropy = sum[ i = 1, N ]( P(Vi) * log2( p(Vi) ) )
     entropy = 0.0
     for p in places:
         out_count = sum(1 for t in transitions.values() if p in t["in"])
         if out_count > 1:
             p_i = 1.0 / out_count
-            place_entropy = -sum(p_i * math.log2(p_i) for _ in range(out_count))
-            entropy += place_entropy
+            entropy += -sum(p_i * math.log2(p_i) for _ in range(out_count))
 
     identical_pairs = 0
     t_ids = list(transitions.keys())
-    
+
+    # simply find identical parts in Petri Nets ( this is not perfect !!! )
     for i in range(len(t_ids)):
         for j in range(i + 1, len(t_ids)):
             t1, t2 = t_ids[i], t_ids[j]
             if transitions[t1]["in"] == transitions[t2]["in"] and transitions[t1]["out"] == transitions[t2]["out"]:
                 identical_pairs += 1
-                
+
+    # redundancy-ratio = identical-parts / number_of_arcs
     redundancy_ratio = (identical_pairs / len(transitions)) if len(transitions) > 0 else 0.0
 
+    # critical-places = number of places with more that 2, in/out transitions
     critical_places = []
     for p in places:
         in_flows = sum(1 for t in transitions.values() if p in t["out"])
@@ -93,15 +106,19 @@ def calculate_resilience_data(places, transitions):
         if in_flows >= 2 and out_flows >= 2:
             critical_places.append(p)
             
-    resilience_score = 100 - (len(critical_places) * 20)
-    resilience_score = max(0, min(100, resilience_score))
+    # resilience-score = ( 1 - critical-places / number_of_places )
+    resilience_score = 0.0
+    if len(places) > 1:
+        resilience_score = 1.0 - ( 1.0 * len(critical_places) ) / len(places)
 
     return {
-        "behavioral_structural_entropy_bits": round(entropy, 4),
-        "structural_redundancy_ratio": round(redundancy_ratio, 4),
+        "total_split_arcs" : total_split_arcs,
+        "average_split_degree" : round(average_split_degree, 5),
+        "behavioral_structural_entropy": round(entropy, 5),
+        "structural_redundancy_ratio": round(redundancy_ratio, 5),
         "duplicate_clusters": identical_pairs,
-        "architecture_resilience_score": resilience_score,
-        "single_points_of_failure": critical_places
+        "resilience_score": round(resilience_score, 5),
+        "critical_places": critical_places
     }
 
 def main():
@@ -111,10 +128,12 @@ def main():
 
     places, transitions, arcs = parse_pnml_file(sys.argv[1])
 
-    num_p = len(places)
-    num_t = len(transitions)
-    num_a = len(arcs)
+    num_p = len(places) # places
+    num_t = len(transitions) # transitions
+    num_a = len(arcs) # arcs
     num_nodes = num_p + num_t
+
+    # density = <number_of_arcs> / ( 2 * number_of_places * number_of_transitions )
     density = num_a / (2 * num_p * num_t) if (num_p * num_t) > 0 else 0.0
 
     resilience_data = calculate_resilience_data(places, transitions)
