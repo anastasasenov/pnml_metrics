@@ -7,7 +7,6 @@ A simple tool for Petri Net metrics. It reads process models ( https://www.pnml.
 * Graph Density: How crowded or complex the network connections are.Behavioral ( https://wikipedia.org/wiki/Bipartite_graph )
 * Entropy: How many unpredictable choice points exist in the process.Redundancy ( https://wikipedia.org/wiki/Entropy_(information_theory) )
 * Ratio: The percentage of duplicate tasks (clones) in the system ( https://wikipedia.org/wiki/Petri_net )
-* Single Points of Failure (SPOF): Strict bottlenecks where a single failure stops everything ( https://wikipedia.org/wiki/Single_point_of_failure )
 
 ## Architecture
 
@@ -19,22 +18,25 @@ PNML file -> XML parser -> Graph extraction -> Metric calculations -> JSON repor
 $> pnml_metrics.py PetriNet.pnml
 {
     "file_name": "PetriNet.pnml",
-     "structural_metrics": {
-        "places": 2,
-        "transitions": 1,
-        "total_nodes": 3,
-        "arcs": 2
+    "structural_metrics": {
+        "places": 23,
+        "transitions": 76,
+        "total_nodes": 99,
+        "arcs": 156
     },
     "complexity_metrics": {
-        "graph_structural_density": 0.5
+        "graph_structural_density": 0.04462
     },
     "resilience_metrics": {
-        "behavioral_structural_entropy_bits": 0.0,
-        "structural_redundancy_ratio": 0.0,
-        "duplicate_clusters": 0,
-        "architecture_resilience_score": 100,
-        "single_points_of_failure": []
-    }
+        "total_split_arcs": 67,
+        "average_split_degree": 6.09091,
+        "behavioral_structural_entropy": 15.55459,
+        "structural_redundancy_ratio": 11.34211,
+        "duplicate_clusters": 862,
+        "resilience_score": 0.95652,
+        "critical_places": [
+            "p_8"
+        ]
 }
 ```
 
